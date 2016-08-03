@@ -308,6 +308,9 @@ public class BluetoothService {
                 } catch (IOException e2) { }
                 connectionFailed();
                 return;
+            } catch (NullPointerException e) {
+                connectionFailed();
+                return;
             }
 
             // Reset the ConnectThread because we're done
@@ -355,6 +358,16 @@ public class BluetoothService {
             // Keep listening to the InputStream while connected
             while (true) {
                 try {
+                    if (!mmSocket.isConnected()) {
+                        throw new IOException();
+                    }
+                    //Good way for testing if the InputStream
+                    //of the LocalSocket within the Socket has something
+                    //to read... however if this Stream is null we still
+                    //will get a NullPointerException...
+                    /*if (mmInStream.available() <= 0) {
+                        throw new IOException();
+                    }*/
                     int data = mmInStream.read();
                     if(data == 0x0A) { 
                     } else if(data == 0x0D) {
@@ -370,9 +383,11 @@ public class BluetoothService {
                         arr_byte.add(data);
                     }
                 } catch (IOException e) {
-                    connectionLost();
                     // Start the service over to restart listening mode
-                    BluetoothService.this.start(BluetoothService.this.isAndroid);
+                    connectionLost();
+                    break;
+                } catch (NullPointerException e) {
+                    connectionLost();
                     break;
                 }
             }
